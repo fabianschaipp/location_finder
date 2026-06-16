@@ -19,6 +19,7 @@ import com.adobe.marketing.mobile.LoggingMode;
 import com.adobe.marketing.mobile.MobileCore;
 import com.adobe.marketing.mobile.edge.Edge;
 import com.adobe.marketing.mobile.edge.ExperienceEvent;
+import com.adobe.marketing.mobile.identity.Identity;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView txtLat;
     private TextView txtLong;
+    private TextView txtEcid;
 
     private FusedLocationProviderClient fusedLocationClient;
 
@@ -44,17 +46,12 @@ public class MainActivity extends AppCompatActivity {
 
         txtLat = findViewById(R.id.txtLat);
         txtLong = findViewById(R.id.txtLong);
+        txtEcid = findViewById(R.id.txtEcid);
 
         fusedLocationClient =
                 LocationServices.getFusedLocationProviderClient(this);
 
         askForLocationPermission();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        sendScreenViewEvent("MainScreen");
     }
 
     private void sendScreenViewEvent(String screenName) {
@@ -74,7 +71,21 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         Edge.sendEvent(event, handles -> {
-            // optional: inspect response handles
+            if (handles != null && !handles.isEmpty()) {
+                // Log response handles to inspect ECID
+                for (Map<String, Object> handle : handles) {
+                    MobileCore.log(LoggingMode.DEBUG, "Edge Response", "Handle: " + handle.toString());
+                }
+            }
+            retrieveEcid();
+        });
+    }
+
+    private void retrieveEcid() {
+        Identity.getExperienceCloudId(ecid -> {
+            if (ecid != null) {
+                runOnUiThread(() -> txtEcid.setText("ECID: " + ecid));
+            }
         });
     }
 
@@ -86,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
                 == PackageManager.PERMISSION_GRANTED) {
 
             fetchLocation();
+            sendScreenViewEvent("MainScreen");
 
         } else {
 
@@ -141,6 +153,7 @@ public class MainActivity extends AppCompatActivity {
                             PackageManager.PERMISSION_GRANTED) {
 
                 fetchLocation();
+                sendScreenViewEvent("MainScreen");
 
             } else {
 
