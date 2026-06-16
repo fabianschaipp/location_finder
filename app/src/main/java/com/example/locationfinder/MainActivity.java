@@ -15,6 +15,14 @@ import androidx.core.content.ContextCompat;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 
+import com.adobe.marketing.mobile.LoggingMode;
+import com.adobe.marketing.mobile.MobileCore;
+import com.adobe.marketing.mobile.edge.Edge;
+import com.adobe.marketing.mobile.edge.ExperienceEvent;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final int LOCATION_PERMISSION_CODE = 100;
@@ -31,6 +39,9 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
+        MobileCore.setLogLevel(LoggingMode.DEBUG);
+        MobileCore.initialize(this, "072780f565a4/a3f02c9a77ab/launch-f366749920de-development");
+
         txtLat = findViewById(R.id.txtLat);
         txtLong = findViewById(R.id.txtLong);
 
@@ -38,6 +49,33 @@ public class MainActivity extends AppCompatActivity {
                 LocationServices.getFusedLocationProviderClient(this);
 
         askForLocationPermission();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        sendScreenViewEvent("MainScreen");
+    }
+
+    private void sendScreenViewEvent(String screenName) {
+        Map<String, Object> xdmData = new HashMap<>();
+        xdmData.put("eventType", "web.webpagedetails.pageViews");
+
+        Map<String, Object> webPageDetails = new HashMap<>();
+        webPageDetails.put("name", screenName);
+        webPageDetails.put("pageViews", new HashMap<String, Object>() {{ put("value", 1); }});
+
+        Map<String, Object> web = new HashMap<>();
+        web.put("webPageDetails", webPageDetails);
+        xdmData.put("web", web);
+
+        ExperienceEvent event = new ExperienceEvent.Builder()
+                .setXdmSchema(xdmData)
+                .build();
+
+        Edge.sendEvent(event, handles -> {
+            // optional: inspect response handles
+        });
     }
 
     private void askForLocationPermission() {
